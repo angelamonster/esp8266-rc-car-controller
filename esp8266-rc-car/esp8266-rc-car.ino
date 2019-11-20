@@ -52,16 +52,16 @@ struct cmdControl
     int  x;
     int  y;
     bool done;
-    unsigned long last_update_time;             // last update time
-}cmdControl;                                    //Ð¡³µ¿ØÖÆÃüÁî
+    unsigned long last_update_time;             // When did the last update
+}cmdControl;                                    // Command for RC car control
 
 
 int motor_pwm_threshold = 0;                    // RC car motor movement PWM threashold, the motor will not move under this value, the value will be automatically tested
-int motor_pwm_max = 1023;
+int motor_pwm_max = 1023;                       // ESP8266 default pwm maximum number
 
 /** ------------------- Encoders and coordinates ------------------ **/
-#define PIN_ENCODER_LEFT 4                      // ENCODER PINS
-#define PIN_ENCODER_RIGHT 5
+#define PIN_ENCODER_LEFT 4                      // ENCODER PINS - left
+#define PIN_ENCODER_RIGHT 5                     // ENCODER PINS - right
 
 #define RADIUS 35                               // wheel radius in mm // MEASUREMENTS The units for all measurements must be consistent.  You can use any length unit as desired.
 #define LENGTH 130                              // wheel base length in mm
@@ -116,8 +116,8 @@ void setupOutputs(){
   u8g2.begin();
   //u8g2.setDisplayRotation(U8G2_R1);
   u8g2.enableUTF8Print();    // enable UTF8 support for the Arduino print() function  
-  u8g2.setFont(u8g2_font_unifont_t_chinese2);  // use chinese2 for all the glyphs of "ÄãºÃÊÀ½ç"
-  //u8g2.setFont(u8g2_font_b10_t_japanese1);  // all the glyphs of "¤³¤ó¤Ë¤Á¤ÏÊÀ½ç" are already included in japanese1: Lerning Level 1-6
+  u8g2.setFont(u8g2_font_unifont_t_chinese2);  // use chinese2 for all the glyphs of "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"
+  //u8g2.setFont(u8g2_font_b10_t_japanese1);  // all the glyphs of "ï¿½ï¿½ï¿½ï¿½Ë¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" are already included in japanese1: Lerning Level 1-6
   u8g2.setFontDirection(0);
   u8g2.firstPage();  
   do {
@@ -207,6 +207,16 @@ unsigned long curr_loop_mills = 0;
   
 void loop() {
   curr_loop_mills = millis();
+
+  detectSensors();                                  // detect sensors
+  detectCommands();                                 //  Serial.println("Starting detect commands...");
+  handleCommands();                                 //  Serial.println("Starting handleCommands...");
+  showStatus();
+  
+  delay(50); // wait
+}
+
+void detectSensors(){
   if (millis() - prevPositionComputeTime > POSITION_COMPUTE_INTERVAL) {
     // Computes the new angular velocities and uses that to compute the new position.
     // The accuracy of the position estimate will increase with smaller time interval until a certain point.
@@ -240,46 +250,31 @@ void loop() {
     prevSendTime = millis();
   }
   
-  int noBytes = Udp.parsePacket();
+}
+
+void detectCommands(){
+ int noBytes = Udp.parsePacket();
   String received_command = "";
 
-  if ( noBytes ) {
-//    Serial.print(millis() / 1000);
-//    Serial.print(":Packet of ");
-//    Serial.print(noBytes);
-//    Serial.print(" received from ");
-//    Serial.print(Udp.remoteIP());
-//    Serial.print(":");
-//    Serial.println(Udp.remotePort());
-
+  if ( noBytes ) {      
     Udp.read(packetBuffer,noBytes);
     packetBuffer[noBytes]='\0';
-//    Serial.println(packetBuffer);
-        
-    //incomingByte = packetBuffer[0];
-    //Serial.println();
-    //sprintf(text_status,"%d:Packet of %d received ",millis() / 1000,noBytes);
-    StaticJsonDocument<200> doc; //ÉùÃ÷Ò»¸öJsonDocument¶ÔÏó
-    DeserializationError error = deserializeJson(doc, packetBuffer); //·´ÐòÁÐ»¯JSONÊý¾Ý
-    if (!error) //¼ì²é·´ÐòÁÐ»¯ÊÇ·ñ³É¹¦
-    {
-        //¶ÁÈ¡json½Úµã
-        int pv = doc[0];//µÈÍ¬ÓÚconst char *myC = doc["myChar"].as<char*>();
-        switch(pv){
-          case enConfig:
-            
+
+    StaticJsonDocument<200> doc;                                                  // json document object
+    DeserializationError error = deserializeJson(doc, packetBuffer);              // Read Json to doc
+    if (!error) {
+        int cmdType = doc[0];                                                     // eques const char *myC = doc["myChar"].as<char*>();
+        switch(cmdType){
+          case enConfig:                                                          // config command, used for parameter settings for rc car
+            // TODO:
             Serial.printf("Config Package");
             Serial.println();
             break;
-          case enControl:
+          case enControl:                                                         // control command, used for motor control eg. forward, backward, rotate...                                                
             cmdControl.x  = doc[1]; 
             cmdControl.y  = doc[2]; 
             cmdControl.done = false;
             cmdControl.last_update_time = curr_loop_mills;
-//            Serial.printf("Control Package");
-//            Serial.println();
-//            Serial.printf("pv=%d\tx=%d\ty=%d",pv,cmdControl.x,cmdControl.y);
-//            Serial.println();
             break;
           default:
             Serial.printf("Packge unknown");
@@ -288,19 +283,6 @@ void loop() {
         }
     }
   }
-//  Serial.println("Starting detect key presses...");
-//  detectKeyPresses();
-//  Serial.println("Starting handleCommands...");
-  handleCommands();
-//  Serial.println("Starting showStatus...");
-  showStatus();
-  
-  delay(50); // wait
-  // calculate the new offset for the scrolling    
-//  status_scroll_offset-=1;              // scroll by one pixel
-//  if ( (u8g2_uint_t)status_scroll_offset < (u8g2_uint_t)-status_scroll_text_width )  
-//    status_scroll_offset = 0;             // start over again
-
 }
 
 void handleCommands(){
@@ -384,8 +366,8 @@ char text_status[64];
 * update the status to screen or serial port.
 */
 void showStatus(){
-  u8g2.setFont(u8g2_font_unifont_t_chinese2);  // use chinese2 for all the glyphs of "ÄãºÃÊÀ½ç"
-  //u8g2.setFont(u8g2_font_b10_t_japanese1);  // all the glyphs of "¤³¤ó¤Ë¤Á¤ÏÊÀ½ç" are already included in japanese1: Lerning Level 1-6
+  u8g2.setFont(u8g2_font_unifont_t_chinese2);  // use chinese2 for all the glyphs of "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"
+  //u8g2.setFont(u8g2_font_b10_t_japanese1);  // all the glyphs of "ï¿½ï¿½ï¿½ï¿½Ë¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" are already included in japanese1: Lerning Level 1-6
   u8g2.setFontDirection(0);
   u8g2.firstPage();  
   do {
@@ -394,5 +376,10 @@ void showStatus(){
     u8g2.setCursor(0, 40);
     u8g2.printf("PWM=%d/%d",left,right);
   } while ( u8g2.nextPage());
-}
 
+    // calculate the new offset for the scrolling    
+//  status_scroll_offset-=1;              // scroll by one pixel
+//  if ( (u8g2_uint_t)status_scroll_offset < (u8g2_uint_t)-status_scroll_text_width )  
+//    status_scroll_offset = 0;             // start over again
+
+}
