@@ -23,3 +23,7 @@ python wifi_controller_gui.py --host=<IP address of the car>
 ```
 
 Press W, A, S, D keys to control your RC car.
+
+!![Interface](https://github.com/angelamonster/esp8266-rc-car-controller/blob/master/resources/interface.png)
+
+!![RC Car](https://github.com/angelamonster/esp8266-rc-car-controller/blob/master/resources/rc2wd.png)
