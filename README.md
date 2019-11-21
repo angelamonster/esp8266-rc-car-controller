@@ -1,4 +1,4 @@
-#Control an RC car with ESP8266 over WiFi
+##Control an RC car with ESP8266 over WiFi
 
 This repository contains code to control an RC car over WiFi, the work is based on [indrekots's esp8266 rc car controller](https://github.com/indrekots/esp8266-rc-car-controller). 
 
