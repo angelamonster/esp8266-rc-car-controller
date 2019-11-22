@@ -188,9 +188,8 @@ def main():
             host = a
 
     if host == "":
-    #    print("Did not define host, use -h or --host to pass the host name of the car")
-    #    sys.exit(2)
-        host = "192.168.1.203"
+        print("Did not define host, use -h or --host to pass the host name of the car")
+        sys.exit(2)
 
     p = Controller(host)
     p.start()

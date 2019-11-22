@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">RC Controller</string>
+
+    <string name="dummy_button">OK Button</string>
+    <string name="dummy_content">Happy\nLife</string>
+</resources>
